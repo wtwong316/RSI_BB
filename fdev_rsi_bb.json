@@ -1,0 +1,38 @@
+{
+    "query": {
+        "bool": {
+            "must": [
+                {"range": {"date": {"gte": "2021-01-01", "lte": "2021-05-31"}}}, 
+                {"term": {"symbol": "FDEV"}}
+            ]
+        }
+    }, 
+    "aggs": {
+        "RSI_BB": {
+            "date_histogram": {"field": "date", "fixed_interval": "1d", "format": "yyyy-MM-dd"}, 
+            "aggs": {
+                "Daily": {"avg": {"field": "close"}}, 
+                "DateStr": {"min": {"field": "date"}}, 
+                "SDaily": { "bucket_selector": {"buckets_path": {"count":"_count"}, "script": "params.count > 0"}},
+                "Diff": {"derivative": {"buckets_path": "Daily"}}, 
+                "Gain": {"bucket_script": {"buckets_path": {"Diff": "Diff"}, "script": "(params.Diff > 0) ? params.Diff : 0"}}, 
+                "Loss": {"bucket_script": {"buckets_path": {"Diff": "Diff"}, "script": "(params.Diff < 0) ? -params.Diff : 0"}},              
+                "GainSMA": {"moving_fn": {"script": "MovingFunctions.unweightedAvg(values)", "window": 14, "buckets_path": "Gain", "shift":1}},
+                "LossSMA": {"moving_fn": {"script": "MovingFunctions.unweightedAvg(values)", "window": 14, "buckets_path": "Loss", "shift":1}}, 
+                "RSI": {"bucket_script": {"buckets_path": {"GainSMA": "GainSMA", "LossSMA": "LossSMA"}, "script": "100 - 100/(1+params.GainSMA/params.LossSMA)"}}, 
+                "RSI_Diff": {"derivative": {"buckets_path": "RSI"}}, 
+                "RSIType": {"bucket_script": {"buckets_path": {"RSI": "RSI", "RSI_Diff": "RSI_Diff"}, "script": "(params.RSI >= 70) ? (params.RSI_Diff > 0 ? 3:4) : (params.RSI <= 30) ? (params.RSI_Diff > 0 ? 2:1):0"}}, 
+                "RSI_SMA": {"moving_fn": {"script": "MovingFunctions.unweightedAvg(values)", "window": 20, "buckets_path": "RSI"}}, 
+                "RSI_SD": {"moving_fn": {"script": "MovingFunctions.stdDev(values, MovingFunctions.unweightedAvg(values))", "window": 20, "buckets_path": "RSI"}}, 
+                "RSI_BBU": {"bucket_script": {"buckets_path": {"SMA": "RSI_SMA", "SD": "RSI_SD"}, "script": "params.SMA + 2 * params.SD"}}, 
+                "RSI_BBL": {"bucket_script": {"buckets_path": {"SMA": "RSI_SMA", "SD": "RSI_SD"}, "script": "params.SMA - 2 * params.SD"}}, 
+                "SMA": {"moving_fn": {"script": "MovingFunctions.unweightedAvg(values)", "window": 20, "buckets_path": "Daily"}}, 
+                "SD": {"moving_fn": {"script": "MovingFunctions.stdDev(values, MovingFunctions.unweightedAvg(values))", "window": 20, "buckets_path": "Daily"}}, 
+                "BBU": {"bucket_script": {"buckets_path": {"SMA": "SMA", "SD": "SD"}, "script": "params.SMA + 2 * params.SD"}}, 
+                "BBL": {"bucket_script": {"buckets_path": {"SMA": "SMA", "SD": "SD"}, "script": "params.SMA - 2 * params.SD"}}, 
+                "SRSI_BB": {"bucket_selector": {"buckets_path": {"DateStr": "DateStr"}, "script": "params.DateStr >= 1612137600000L"}}
+            }
+        }
+    }
+    , "from": 0, "size": 0
+}
