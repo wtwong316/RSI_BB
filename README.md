@@ -1,5 +1,6 @@
 # RSI_BB
 Materials for the article "RSI BB or RSI &amp; BB? Easy, let's test it with Elasticsearch." in Medium
+(https://wtwong316.medium.com/rsi-bb-or-rsi-bb-easy-lets-test-it-with-elasticsearch-51129e8819e5)
 
 The following steps have been tested with Elasticsearch Server v7.10.1
 
